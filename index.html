@@ -27,6 +27,11 @@
     .kicker { margin: 0; color: var(--cyan); font-size: 11px; letter-spacing: 0.16em; }
     h1 { margin: 2px 0 0; font-size: 20px; font-weight: 650; letter-spacing: 0.02em; }
     #status { margin: 4px 0 0; color: var(--muted); max-width: 280px; }
+    #map-jump {
+      display: inline-block; margin-top: 8px; color: var(--amber); text-decoration: none;
+      letter-spacing: 0.08em; text-transform: uppercase; font-size: 12px;
+    }
+    #map-jump:hover { color: white; }
     #views, #tools { display: flex; flex-direction: column; gap: 6px; }
     #views { left: 16px; top: 132px; }
     #tools { right: 16px; top: 16px; }
@@ -107,14 +112,14 @@
     }
     #measure[hidden] { display: none; }
     #map-card {
-      right: 16px; bottom: 96px; width: 380px; z-index: 3;
+      right: 16px; top: 204px; width: 300px; z-index: 3;
       border: 1px solid var(--line); border-radius: 4px; overflow: hidden;
       background: rgba(8, 22, 36, 0.95); backdrop-filter: blur(8px);
       box-shadow: 0 16px 40px rgba(0, 0, 0, 0.38);
     }
     #map-card[hidden] { display: none; }
     #map-card h2 { margin: 0; font-size: 14px; font-weight: 650; color: var(--cyan); letter-spacing: 0.04em; }
-    #map-frame { display: block; width: 100%; height: 230px; object-fit: cover; border: 0; background: #102033; }
+    #map-frame { display: block; width: 100%; height: 168px; object-fit: cover; border: 0; background: #102033; }
     a.map-shot { display: block; }
     #map-link {
       display: flex; align-items: center; justify-content: space-between; gap: 8px;
@@ -199,6 +204,7 @@
     <p class="kicker">QL1A · TC1-N5</p>
     <h1>Tuyến QL1A</h1>
     <p id="status">Đang tải mô hình…</p>
+    <a id="map-jump" href="https://www.google.com/maps/@18.8160298,105.6511584,707m/data=!3m1!1e3" target="_blank" rel="noopener">Google Maps</a>
   </header>
   <nav id="views" aria-label="Góc nhìn">
     <button class="nav" type="button" data-view="orbit" aria-pressed="true">Toàn cảnh</button>
@@ -274,7 +280,7 @@
     const STOREY_ORDER = ["ĐÁY ĐÀI", "MẶT ĐÀI", "MDTN", "TẦNG 1", "TẦNG 2", "TẦNG 3", "TẦNG 4", "TẦNG TUM", "TẦNG MÁI"];
     const KIND_ORDER = ["Kết cấu mặt", "Địa hình", "Lan can", "Cột", "Dầm", "Tường", "Đèn", "Thiết bị", "Cấu kiện", "Móng", "Cọc", "Tấm"];
     const KIND_HEX = {
-      "Kết cấu mặt": "#5e666f",
+      "Kết cấu mặt": "#4e555e",
       "Địa hình": "#62a044",
       "Lan can": "#d5dde4",
       "Cột": "#e4dfd4",
@@ -289,8 +295,8 @@
       "Tấm": "#dfe4e8",
     };
     const LAYER_HEX = {
-      Tuyen: "#5e666f",
-      Cau: "#e4dfd4",
+      Tuyen: "#4e555e",
+      Cau: "#c9c4b8",
       Cong: "#b7aa96",
       ChieuSang: "#f2c14e",
       ATGT: "#2a6fbe",
@@ -298,19 +304,19 @@
       HienTrang: "#a56b3c",
     };
     const SURFACE = {
-      nhua: { hex: "#5e666f", rough: 0.96, metal: 0 },
-      capPhoi: { hex: "#c4965a", rough: 0.98, metal: 0 },
-      dat: { hex: "#a56b3c", rough: 0.98, metal: 0 },
-      co: { hex: "#62a044", rough: 0.92, metal: 0 },
+      nhua: { hex: "#4e555e", rough: 0.96, metal: 0, bias: -6 },
+      capPhoi: { hex: "#b08a52", rough: 0.98, metal: 0, bias: 3 },
+      dat: { hex: "#8d5a32", rough: 0.98, metal: 0, bias: 6 },
+      co: { hex: "#62a044", rough: 0.92, metal: 0, bias: -2 },
       la: { hex: "#3e9a48", rough: 0.88, metal: 0 },
       laDam: { hex: "#2f7a3a", rough: 0.9, metal: 0 },
-      beTong: { hex: "#e4dfd4", rough: 0.74, metal: 0.02 },
-      coc: { hex: "#d2cdc2", rough: 0.8, metal: 0 },
+      beTong: { hex: "#c9c4b8", rough: 0.74, metal: 0.02, bias: 0 },
+      coc: { hex: "#bdb8ae", rough: 0.8, metal: 0, bias: 1 },
       mong: { hex: "#8a7560", rough: 0.9, metal: 0 },
       thep: { hex: "#d5dde4", rough: 0.34, metal: 0.62 },
       nhom: { hex: "#e7edf1", rough: 0.28, metal: 0.72 },
-      son: { hex: "#f4f6f2", rough: 0.42, metal: 0 },
-      viaHe: { hex: "#cfc6b6", rough: 0.84, metal: 0 },
+      son: { hex: "#f4f6f2", rough: 0.42, metal: 0, bias: -8 },
+      viaHe: { hex: "#cfc6b6", rough: 0.84, metal: 0, bias: -1 },
       den: { hex: "#f2c14e", rough: 0.38, metal: 0.12 },
       cotDen: { hex: "#3c434c", rough: 0.5, metal: 0.4 },
       bienDo: { hex: "#d24b3c", rough: 0.48, metal: 0.04 },
@@ -354,7 +360,7 @@
     const explode = document.getElementById("explode");
     const explodeToggle = document.getElementById("explode-toggle");
 
-    const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
+    const renderer = new THREE.WebGLRenderer({ antialias: true, logarithmicDepthBuffer: true, powerPreference: "high-performance" });
     renderer.setPixelRatio(Math.min(devicePixelRatio, 1.5));
     renderer.setSize(innerWidth, innerHeight);
     renderer.outputColorSpace = THREE.SRGBColorSpace;
@@ -482,7 +488,7 @@
       const surface = SURFACE[surfaceOf(modelId, kind, name)] || SURFACE.beTong;
       const color = new THREE.Color(surface.hex);
       if ((storey || "").startsWith("00-")) color.multiplyScalar(0.8);
-      return { color, roughness: surface.rough, metalness: surface.metal };
+      return { color, roughness: surface.rough, metalness: surface.metal, bias: surface.bias || 0 };
     }
 
     function partRank(storey, kind) {
@@ -530,8 +536,13 @@
       const distance = radius / Math.sin((camera.fov * Math.PI) / 360);
       const offset = new THREE.Vector3(distance * 0.86, distance * 0.52, distance * 0.78);
       flyTo(center.clone().add(offset), center);
-      camera.near = Math.max(0.05, radius / 4000);
-      camera.far = Math.max(4000, radius * 40);
+      fitClip();
+    }
+
+    function fitClip() {
+      const dist = Math.max(2, camera.position.distanceTo(controls.target));
+      camera.near = THREE.MathUtils.clamp(dist / 100, 0.2, 80);
+      camera.far = Math.max(dist * 8, camera.near + 200);
       camera.updateProjectionMatrix();
     }
 
@@ -777,12 +788,13 @@
         const kind = info.classLabel || nameParts[0].replace(/^Ifc/, "");
         const finish = colorOf(modelId, kind, info.storey, info.name);
         const opacity = source && source.opacity != null ? source.opacity : 1;
-        const key = finish.color.getHexString() + "|" + opacity.toFixed(3) + "|" + finish.roughness;
+        const key = finish.color.getHexString() + "|" + opacity.toFixed(3) + "|" + finish.roughness + "|" + finish.bias;
         if (!groups.has(key)) {
           groups.set(key, {
             color: finish.color,
             roughness: finish.roughness,
             metalness: finish.metalness,
+            bias: finish.bias,
             opacity,
             meshes: [],
             vertices: 0,
@@ -820,6 +832,10 @@
           transparent: group.opacity < 0.999,
           side: THREE.DoubleSide,
           envMapIntensity: 0.08,
+          polygonOffset: group.bias !== 0,
+          polygonOffsetFactor: group.bias,
+          polygonOffsetUnits: group.bias,
+          depthWrite: group.opacity >= 0.999,
         });
         const batch = new THREE.BatchedMesh(group.meshes.length, group.vertices + 8, group.indices + 24, material);
         batch.frustumCulled = true;
@@ -1684,6 +1700,7 @@
       } else {
         controls.update();
       }
+      fitClip();
       updateMeasureGraphics();
       renderer.render(scene, camera);
     });
