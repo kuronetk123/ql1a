@@ -243,28 +243,49 @@
     const STOREY_ORDER = ["ĐÁY ĐÀI", "MẶT ĐÀI", "MDTN", "TẦNG 1", "TẦNG 2", "TẦNG 3", "TẦNG 4", "TẦNG TUM", "TẦNG MÁI"];
     const KIND_ORDER = ["Kết cấu mặt", "Địa hình", "Lan can", "Cột", "Dầm", "Tường", "Đèn", "Thiết bị", "Cấu kiện", "Móng", "Cọc", "Tấm"];
     const KIND_HEX = {
-  "Kết cấu mặt": "#b8883e",
-  "Địa hình": "#6e4c30",
-      "Lan can": "#9aa6b0",
-      "Cột": "#a7a59b",
-      "Dầm": "#b5a48a",
-      "Tường": "#9c907f",
-      "Đèn": "#e0b15a",
-      "Thiết bị": "#c9843c",
-      "Cấu kiện": "#8d9aa4",
-      "Cây": "#5f8f4e",
-      "Móng": "#6e5e4e",
-      "Cọc": "#5c5348",
-      "Tấm": "#b7aa96",
+      "Kết cấu mặt": "#5e666f",
+      "Địa hình": "#62a044",
+      "Lan can": "#d5dde4",
+      "Cột": "#e4dfd4",
+      "Dầm": "#d9d3c6",
+      "Tường": "#cfc6b6",
+      "Đèn": "#f2c14e",
+      "Thiết bị": "#2a6fbe",
+      "Cấu kiện": "#d9d3c6",
+      "Cây": "#2f7a3a",
+      "Móng": "#8a7560",
+      "Cọc": "#d2cdc2",
+      "Tấm": "#dfe4e8",
     };
     const LAYER_HEX = {
-      Tuyen: "#d7b072",
-      Cau: "#cbb892",
-      Cong: "#a89878",
-      ChieuSang: "#e6c36a",
-      ATGT: "#d4893a",
-      CanhQuan: "#6e9a58",
-      HienTrang: "#8d7d68",
+      Tuyen: "#5e666f",
+      Cau: "#e4dfd4",
+      Cong: "#b7aa96",
+      ChieuSang: "#f2c14e",
+      ATGT: "#2a6fbe",
+      CanhQuan: "#3e9a48",
+      HienTrang: "#a56b3c",
+    };
+    const SURFACE = {
+      nhua: { hex: "#5e666f", rough: 0.96, metal: 0 },
+      capPhoi: { hex: "#c4965a", rough: 0.98, metal: 0 },
+      dat: { hex: "#a56b3c", rough: 0.98, metal: 0 },
+      co: { hex: "#62a044", rough: 0.92, metal: 0 },
+      la: { hex: "#3e9a48", rough: 0.88, metal: 0 },
+      laDam: { hex: "#2f7a3a", rough: 0.9, metal: 0 },
+      beTong: { hex: "#e4dfd4", rough: 0.74, metal: 0.02 },
+      coc: { hex: "#d2cdc2", rough: 0.8, metal: 0 },
+      mong: { hex: "#8a7560", rough: 0.9, metal: 0 },
+      thep: { hex: "#d5dde4", rough: 0.34, metal: 0.62 },
+      nhom: { hex: "#e7edf1", rough: 0.28, metal: 0.72 },
+      son: { hex: "#f4f6f2", rough: 0.42, metal: 0 },
+      viaHe: { hex: "#cfc6b6", rough: 0.84, metal: 0 },
+      den: { hex: "#f2c14e", rough: 0.38, metal: 0.12 },
+      cotDen: { hex: "#3c434c", rough: 0.5, metal: 0.4 },
+      bienDo: { hex: "#d24b3c", rough: 0.48, metal: 0.04 },
+      bienVang: { hex: "#e6b423", rough: 0.48, metal: 0.04 },
+      bienXanh: { hex: "#2a6fbe", rough: 0.42, metal: 0.06 },
+      bienLuc: { hex: "#2f8f55", rough: 0.48, metal: 0.04 },
     };
     const MODEL_ORDER = ["Tuyen", "Cau", "Cong", "ChieuSang", "ATGT", "CanhQuan", "HienTrang"];
     const MODEL_LABEL = {
@@ -307,7 +328,7 @@
     renderer.setSize(innerWidth, innerHeight);
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 0.92;
+    renderer.toneMappingExposure = 1.04;
     document.body.prepend(renderer.domElement);
 
     const pmrem = new THREE.PMREMGenerator(renderer);
@@ -315,8 +336,8 @@
     scene.background = new THREE.Color(0x0c1c2e);
     scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
     pmrem.dispose();
-    scene.add(new THREE.HemisphereLight(0xffe4bc, 0x1a2838, 0.22));
-    const sun = new THREE.DirectionalLight(0xfff2df, 0.72);
+    scene.add(new THREE.HemisphereLight(0xd7e6f6, 0x6d5b42, 0.62));
+    const sun = new THREE.DirectionalLight(0xfff6e4, 1.35);
     sun.position.set(48, 72, 26);
     scene.add(sun);
 
@@ -398,12 +419,39 @@
       return index < 0 ? 0 : index;
     }
 
-    function colorOf(modelId, kind, storey) {
-      const color = new THREE.Color(KIND_HEX[kind] || "#7d8b98");
-      const layer = new THREE.Color(LAYER_HEX[modelId] || "#ffffff");
-      color.lerp(layer, 0.22);
-      if ((storey || "").startsWith("00-")) color.multiplyScalar(0.62);
-      return color;
+    function surfaceOf(modelId, kind, name) {
+      const text = (name || "").toLowerCase();
+      if (kind === "Cây" || text.includes("cây") || text.includes("cay xanh")) return "laDam";
+      if (modelId === "CanhQuan") return "la";
+      if (kind === "Đèn") return "den";
+      if (modelId === "ChieuSang") return "cotDen";
+      if (kind === "Thiết bị" || modelId === "ATGT") {
+        if (text.includes("-p.")) return "bienDo";
+        if (text.includes("-w.")) return "bienVang";
+        if (text.includes("-r.")) return "bienLuc";
+        return "bienXanh";
+      }
+      if (text.includes("vạch") || text.includes("vach") || text.includes("sơn") || text.includes("son trang")) return "son";
+      if (text.includes("nhôm") || text.includes("nhom")) return "nhom";
+      if (text.includes("thép") || text.includes("thep")) return "thep";
+      if (text.includes("đất") || text.includes("dat nen")) return "dat";
+      if (text.includes("cp-loai") || text.includes("cấp phối")) return "capPhoi";
+      if (text.includes("btn")) return "nhua";
+      if (text.includes("fl-co")) return "co";
+      if (text.includes("bv-") || text.includes("ld01") || text.includes("làn đi") || text.includes("lan di")) return "viaHe";
+      if (kind === "Địa hình" || modelId === "HienTrang") return "co";
+      if (text.includes("đế") || text.includes("de cong") || text.includes("foundation") || text.includes("móng")) return "mong";
+      if (text.includes("cọc") || text.includes("coc") || text.includes("fo-")) return "coc";
+      if (text.includes("bê tông") || text.includes("be tong") || text.includes("con luon") || text.includes("cống") || text.includes("btxm")) return "beTong";
+      if (kind === "Lan can") return "thep";
+      return "beTong";
+    }
+
+    function colorOf(modelId, kind, storey, name) {
+      const surface = SURFACE[surfaceOf(modelId, kind, name)] || SURFACE.beTong;
+      const color = new THREE.Color(surface.hex);
+      if ((storey || "").startsWith("00-")) color.multiplyScalar(0.8);
+      return { color, roughness: surface.rough, metalness: surface.metal };
     }
 
     function partRank(storey, kind) {
@@ -696,12 +744,14 @@
         const modelId = mesh.userData.modelId;
         const info = meta[modelId + ":" + (nameParts[1] || "")] || {};
         const kind = info.classLabel || nameParts[0].replace(/^Ifc/, "");
-        const color = colorOf(modelId, kind, info.storey);
+        const finish = colorOf(modelId, kind, info.storey, info.name);
         const opacity = source && source.opacity != null ? source.opacity : 1;
-        const key = color.getHexString() + "|" + opacity.toFixed(3);
+        const key = finish.color.getHexString() + "|" + opacity.toFixed(3) + "|" + finish.roughness;
         if (!groups.has(key)) {
           groups.set(key, {
-            color,
+            color: finish.color,
+            roughness: finish.roughness,
+            metalness: finish.metalness,
             opacity,
             meshes: [],
             vertices: 0,
@@ -723,7 +773,7 @@
       const edgeMaterial = new THREE.LineBasicMaterial({
         color: 0x49d7f2,
         transparent: true,
-        opacity: 0.72,
+        opacity: 0.38,
         depthTest: true,
         polygonOffset: true,
         polygonOffsetFactor: -2,
@@ -733,8 +783,8 @@
       for (const group of groups.values()) {
         const material = new THREE.MeshStandardMaterial({
           color: group.color,
-          roughness: 0.92,
-          metalness: 0,
+          roughness: group.roughness,
+          metalness: group.metalness,
           opacity: group.opacity,
           transparent: group.opacity < 0.999,
           side: THREE.DoubleSide,
