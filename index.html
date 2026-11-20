@@ -6,42 +6,54 @@
   <title>QL1A — tuyến, cầu và hạ tầng</title>
   <style>
     :root {
-      --bg: #071422;
-      --ink: #e7eef6;
-      --muted: #b7c7d8;
-      --line: rgba(186, 214, 238, 0.16);
-      --glass: rgba(7, 18, 32, 0.78);
-      --amber: #e6b15a;
+      --bg: #0c1c2e;
+      --ink: #e8f4fb;
+      --muted: #9eb6c9;
+      --line: rgba(78, 206, 236, 0.38);
+      --glass: rgba(8, 22, 36, 0.92);
+      --amber: #e0b15a;
+      --cyan: #3ec8ea;
     }
     * { box-sizing: border-box; }
     html, body { margin: 0; height: 100%; background: var(--bg); color: var(--ink); font: 14px/1.4 "Segoe UI", system-ui, sans-serif; }
     canvas { display: block; touch-action: none; }
     button, input { font: inherit; color: inherit; }
     header, nav, aside, footer { position: fixed; z-index: 2; }
-    header { left: 18px; top: 16px; }
-    .kicker { margin: 0; color: var(--amber); font-size: 11px; letter-spacing: 0.16em; }
-    h1 { margin: 2px 0 0; font-size: 20px; font-weight: 620; letter-spacing: 0.02em; }
+    header {
+      left: 16px; top: 14px; padding: 10px 14px 12px; max-width: 320px;
+      border: 1px solid var(--line); border-radius: 4px; background: var(--glass);
+      box-shadow: 0 10px 28px rgba(0, 0, 0, 0.28);
+    }
+    .kicker { margin: 0; color: var(--cyan); font-size: 11px; letter-spacing: 0.16em; }
+    h1 { margin: 2px 0 0; font-size: 20px; font-weight: 650; letter-spacing: 0.02em; }
     #status { margin: 4px 0 0; color: var(--muted); max-width: 280px; }
-    #views, #tools { display: flex; flex-direction: column; gap: 2px; }
-    #views { left: 18px; top: 108px; }
-    #tools { right: 18px; top: 108px; }
+    #views, #tools { display: flex; flex-direction: column; gap: 6px; }
+    #views { left: 16px; top: 132px; }
+    #tools { right: 16px; top: 16px; }
     button.nav, button.tool {
       width: 148px; text-align: left; cursor: pointer;
-      background: transparent; border: 0; border-left: 2px solid transparent;
-      padding: 8px 12px; color: var(--muted);
-      transition: color 0.2s ease, border-color 0.2s ease, background 0.2s ease;
+      background: rgba(8, 22, 36, 0.9); border: 1px solid rgba(62, 200, 234, 0.42);
+      border-radius: 3px; padding: 8px 12px; color: #d7eaf6;
+      box-shadow: inset 0 0 0 1px rgba(62, 200, 234, 0.05);
+      transition: color 0.18s ease, border-color 0.18s ease, background 0.18s ease, transform 0.18s ease, box-shadow 0.18s ease;
     }
-    #tools button.tool { text-align: right; border-left: 0; border-right: 2px solid transparent; }
-    button.nav:hover, button.tool:hover { color: var(--ink); }
-    button.nav[aria-pressed="true"] { color: var(--amber); border-left-color: var(--amber); }
-    button.tool[aria-pressed="true"] { color: var(--amber); border-right-color: var(--amber); }
+    #tools button.tool { text-align: right; }
+    button.nav:hover, button.tool:hover {
+      color: white; border-color: var(--cyan); transform: translateY(-1px);
+    }
+    button.nav[aria-pressed="true"], button.tool[aria-pressed="true"] {
+      color: var(--cyan); border-color: var(--cyan);
+      background: rgba(62, 200, 234, 0.16);
+      box-shadow: 0 0 16px rgba(62, 200, 234, 0.2);
+    }
     #filters {
-      left: 18px; top: 292px; width: 248px; max-height: calc(100vh - 370px); overflow: auto;
-      padding: 12px 12px 8px; border: 1px solid var(--line); border-radius: 12px;
-      background: rgba(12, 28, 48, 0.94); backdrop-filter: blur(10px);
+      left: 16px; top: 318px; width: 248px; max-height: calc(100vh - 400px); overflow: auto;
+      padding: 12px 12px 8px; border: 1px solid var(--line); border-radius: 4px;
+      background: var(--glass); backdrop-filter: blur(8px);
+      box-shadow: 0 10px 28px rgba(0, 0, 0, 0.28);
     }
     #filters.hidden { display: none; }
-    #filters h2 { margin: 12px 0 6px; color: #f2d7a2; font-size: 11px; font-weight: 650; letter-spacing: 0.14em; }
+    #filters h2 { margin: 12px 0 6px; color: var(--cyan); font-size: 11px; font-weight: 650; letter-spacing: 0.14em; }
     #filters h2:first-child { margin-top: 0; }
     #filters .hint { margin: 0 0 4px; color: var(--muted); font-size: 12px; }
     .chips { display: flex; flex-direction: column; gap: 2px; }
@@ -64,32 +76,46 @@
     }
     button.chip em { margin-left: auto; font-style: normal; color: #6e8498; font-variant-numeric: tabular-nums; }
     button.chip.on { color: #f7fbff; }
-    button.chip.on .knob { background: var(--amber); }
-    button.chip.on .knob::after { transform: translateX(16px); background: #1a1206; }
-    button.chip.on em { color: #f2d7a2; }
+    button.chip.on .knob { background: rgba(62, 200, 234, 0.85); }
+    button.chip.on .knob::after { transform: translateX(16px); background: #06202c; }
+    button.chip.on em { color: #b7e9f6; }
     #detail {
-      right: 18px; bottom: 78px; width: 280px;
-      padding: 14px 14px 10px; border: 1px solid var(--line); border-radius: 12px;
-      background: rgba(12, 28, 48, 0.94); backdrop-filter: blur(10px);
-      opacity: 0; transform: translateY(8px); pointer-events: none;
-      transition: opacity 0.35s ease, transform 0.35s ease;
+      right: 176px; top: 16px; bottom: auto; width: 300px;
+      padding: 0 0 10px; border: 1px solid var(--line); border-radius: 4px;
+      background: rgba(8, 22, 36, 0.95); backdrop-filter: blur(8px);
+      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.38);
+      opacity: 0; transform: translateX(10px); pointer-events: none;
+      transition: opacity 0.28s ease, transform 0.28s ease;
     }
     #detail.open { opacity: 1; transform: none; pointer-events: auto; }
-    #detail h2 { margin: 0 0 8px; font-size: 15px; font-weight: 620; }
+    .detail-head {
+      display: flex; align-items: center; justify-content: space-between; gap: 8px;
+      padding: 8px 10px; border-bottom: 1px solid var(--line); background: rgba(62, 200, 234, 0.08);
+    }
+    #detail h2 { margin: 0; font-size: 14px; font-weight: 650; color: var(--cyan); letter-spacing: 0.04em; }
+    #detail-close {
+      width: 28px; height: 28px; cursor: pointer; border: 1px solid var(--line); border-radius: 3px;
+      background: transparent; color: var(--cyan); font-size: 18px; line-height: 1;
+    }
+    #detail-close:hover { background: rgba(62, 200, 234, 0.16); }
+    #rows { padding: 4px 12px 0; }
     #measure {
-      right: 18px; top: 236px; width: 300px;
-      padding: 14px 14px 10px; border: 1px solid var(--line); border-radius: 12px;
-      background: rgba(12, 28, 48, 0.94); backdrop-filter: blur(10px);
+      right: 176px; bottom: 88px; width: 300px;
+      padding: 12px; border: 1px solid var(--line); border-radius: 4px;
+      background: rgba(8, 22, 36, 0.95); backdrop-filter: blur(8px);
+      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.38);
     }
     #measure[hidden] { display: none; }
-    #measure h2 { margin: 0 0 4px; font-size: 15px; font-weight: 620; }
+    #measure h2 { margin: 0 0 4px; font-size: 14px; font-weight: 650; color: var(--cyan); letter-spacing: 0.04em; }
     #measure .hint { margin: 0 0 8px; color: var(--muted); font-size: 12px; }
     .measure-actions { display: flex; gap: 8px; margin-top: 8px; }
     .measure-actions button {
-      flex: 1; cursor: pointer;
-      border: 1px solid rgba(230, 177, 90, 0.5); background: rgba(230, 177, 90, 0.14);
-      color: var(--amber); border-radius: 8px; padding: 8px 6px;
+      flex: 1; cursor: pointer; letter-spacing: 0.06em; text-transform: uppercase; font-size: 12px;
+      border: 1px solid var(--amber); background: transparent;
+      color: var(--amber); border-radius: 3px; padding: 8px 6px;
+      transition: background 0.18s ease, transform 0.18s ease;
     }
+    .measure-actions button:hover { background: rgba(224, 177, 90, 0.16); transform: translateY(-1px); }
     #dim-layer { position: fixed; inset: 0; z-index: 3; pointer-events: none; overflow: hidden; }
     .dim-label {
       position: absolute; transform: translate(-50%, -50%);
@@ -117,15 +143,18 @@
     .row { display: flex; gap: 12px; padding: 5px 0; border-top: 1px solid var(--line); }
     .row b { width: 84px; flex: none; color: var(--muted); font-weight: 550; }
     #only {
-      margin-top: 8px; width: 100%; cursor: pointer;
-      border: 1px solid rgba(230, 177, 90, 0.5); background: rgba(230, 177, 90, 0.14);
-      color: var(--amber); border-radius: 8px; padding: 8px 10px;
+      margin: 10px 12px 0; width: calc(100% - 24px); cursor: pointer;
+      border: 1px solid var(--amber); background: transparent;
+      color: var(--amber); border-radius: 3px; padding: 8px 10px;
+      letter-spacing: 0.08em; text-transform: uppercase; font-size: 12px;
+      transition: background 0.18s ease, transform 0.18s ease;
     }
+    #only:hover { background: rgba(224, 177, 90, 0.16); transform: translateY(-1px); }
     footer {
       left: 50%; bottom: 16px; transform: translateX(-50%);
-      width: min(520px, calc(100vw - 480px));
-      padding: 10px 14px 12px; border: 1px solid var(--line); border-radius: 12px;
-      background: var(--glass); backdrop-filter: blur(10px);
+      width: min(520px, calc(100vw - 560px));
+      padding: 10px 14px 12px; border: 1px solid var(--line); border-radius: 4px;
+      background: var(--glass); backdrop-filter: blur(8px);
     }
     footer p { margin: 0 0 8px; color: var(--muted); font-size: 12px; text-align: center; }
     footer label { display: flex; align-items: center; gap: 10px; color: var(--muted); font-size: 12px; letter-spacing: 0.08em; }
@@ -173,7 +202,10 @@
     <div class="chips" id="kinds"></div>
   </aside>
   <aside id="detail">
-    <h2 id="detail-title">Cấu kiện</h2>
+    <div class="detail-head">
+      <h2 id="detail-title">Cấu kiện</h2>
+      <button id="detail-close" type="button" aria-label="Đóng">×</button>
+    </div>
     <div id="rows"></div>
     <button id="only" type="button">Chỉ hiện cấu kiện này</button>
   </aside>
@@ -211,28 +243,28 @@
     const STOREY_ORDER = ["ĐÁY ĐÀI", "MẶT ĐÀI", "MDTN", "TẦNG 1", "TẦNG 2", "TẦNG 3", "TẦNG 4", "TẦNG TUM", "TẦNG MÁI"];
     const KIND_ORDER = ["Kết cấu mặt", "Địa hình", "Lan can", "Cột", "Dầm", "Tường", "Đèn", "Thiết bị", "Cấu kiện", "Móng", "Cọc", "Tấm"];
     const KIND_HEX = {
-      "Kết cấu mặt": "#c4893a",
-      "Địa hình": "#3f7d45",
-      "Lan can": "#2f78b4",
-      "Cột": "#a85b38",
-      "Dầm": "#c47848",
-      "Tường": "#8d6a58",
-      "Đèn": "#e6a322",
-      "Thiết bị": "#e15d2a",
-      "Cấu kiện": "#5d8c9c",
-      "Cây": "#2f9a4c",
-      "Móng": "#6d5b49",
-      "Cọc": "#4e453c",
-      "Tấm": "#6d88aa",
+  "Kết cấu mặt": "#b8883e",
+  "Địa hình": "#6e4c30",
+      "Lan can": "#9aa6b0",
+      "Cột": "#a7a59b",
+      "Dầm": "#b5a48a",
+      "Tường": "#9c907f",
+      "Đèn": "#e0b15a",
+      "Thiết bị": "#c9843c",
+      "Cấu kiện": "#8d9aa4",
+      "Cây": "#5f8f4e",
+      "Móng": "#6e5e4e",
+      "Cọc": "#5c5348",
+      "Tấm": "#b7aa96",
     };
     const LAYER_HEX = {
-      Tuyen: "#e2b15a",
-      Cau: "#6aaee0",
-      Cong: "#3ec4b4",
-      ChieuSang: "#f0c14b",
-      ATGT: "#ef7b38",
-      CanhQuan: "#63b85a",
-      HienTrang: "#9a9086",
+      Tuyen: "#d7b072",
+      Cau: "#cbb892",
+      Cong: "#a89878",
+      ChieuSang: "#e6c36a",
+      ATGT: "#d4893a",
+      CanhQuan: "#6e9a58",
+      HienTrang: "#8d7d68",
     };
     const MODEL_ORDER = ["Tuyen", "Cau", "Cong", "ChieuSang", "ATGT", "CanhQuan", "HienTrang"];
     const MODEL_LABEL = {
@@ -255,8 +287,8 @@
     ];
     const TINT = {
       base: new THREE.Color(1, 1, 1),
-      hot: new THREE.Color(1.55, 1.16, 0.62),
-      cool: new THREE.Color(0.7, 0.9, 1.28),
+      hot: new THREE.Color(1.22, 1.12, 0.92),
+      cool: new THREE.Color(0.82, 1.06, 1.18),
     };
     const reduceMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
     const SURVEY_X = 593640;
@@ -275,16 +307,16 @@
     renderer.setSize(innerWidth, innerHeight);
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 0.98;
+    renderer.toneMappingExposure = 0.92;
     document.body.prepend(renderer.domElement);
 
     const pmrem = new THREE.PMREMGenerator(renderer);
     const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x071422);
+    scene.background = new THREE.Color(0x0c1c2e);
     scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
     pmrem.dispose();
-    scene.add(new THREE.HemisphereLight(0xd5e4f4, 0x1b2b3c, 0.28));
-    const sun = new THREE.DirectionalLight(0xfff2df, 1.45);
+    scene.add(new THREE.HemisphereLight(0xffe4bc, 0x1a2838, 0.22));
+    const sun = new THREE.DirectionalLight(0xfff2df, 0.72);
     sun.position.set(48, 72, 26);
     scene.add(sun);
 
@@ -302,7 +334,7 @@
         transparent: true,
         depthWrite: false,
         uniforms: {
-          uColor: { value: new THREE.Color(0x8eb4d4) },
+          uColor: { value: new THREE.Color(0x49d4f0) },
           uOrigin: { value: new THREE.Vector2(30, -16) },
         },
         vertexShader: `
@@ -369,7 +401,7 @@
     function colorOf(modelId, kind, storey) {
       const color = new THREE.Color(KIND_HEX[kind] || "#7d8b98");
       const layer = new THREE.Color(LAYER_HEX[modelId] || "#ffffff");
-      color.lerp(layer, 0.34);
+      color.lerp(layer, 0.22);
       if ((storey || "").startsWith("00-")) color.multiplyScalar(0.62);
       return color;
     }
@@ -543,6 +575,7 @@
         const kind = info.classLabel || item.kind;
         item.visible = modelOn.has(item.model) && (!isolatedGuid || item.key === isolatedGuid) && storeyOn.has(storey) && kindOn.has(kind);
         item.batch.setVisibleAt(item.instanceId, item.visible);
+        if (item.edges) item.edges.visible = item.visible;
       }
     }
 
@@ -553,6 +586,7 @@
         lift.makeTranslation(0, 0, stackOffset(item.rank, item.part, next));
         placed.multiplyMatrices(lift, item.placement);
         item.batch.setMatrixAt(item.instanceId, placed);
+        if (item.edges) item.edges.matrix.copy(placed);
       }
       for (const batch of batches) {
         batch.computeBoundingBox();
@@ -686,15 +720,25 @@
       }
 
       const yUp = new THREE.Matrix4().makeRotationX(-Math.PI / 2);
+      const edgeMaterial = new THREE.LineBasicMaterial({
+        color: 0x49d7f2,
+        transparent: true,
+        opacity: 0.72,
+        depthTest: true,
+        polygonOffset: true,
+        polygonOffsetFactor: -2,
+        polygonOffsetUnits: -2,
+      });
+      let edgeBudget = 900;
       for (const group of groups.values()) {
         const material = new THREE.MeshStandardMaterial({
           color: group.color,
-          roughness: 0.86,
+          roughness: 0.92,
           metalness: 0,
           opacity: group.opacity,
           transparent: group.opacity < 0.999,
           side: THREE.DoubleSide,
-          envMapIntensity: 0.18,
+          envMapIntensity: 0.08,
         });
         const batch = new THREE.BatchedMesh(group.meshes.length, group.vertices + 8, group.indices + 24, material);
         batch.frustumCulled = true;
@@ -723,6 +767,7 @@
               geometryId: batch.addGeometry(packed),
               positions,
               box: packed.boundingBox.clone(),
+              edges: srcPos.count >= 12 && srcPos.count <= 1600 ? new THREE.EdgesGeometry(packed, 28) : null,
             };
             shared.set(mesh.geometry.uuid, record);
             packed.dispose();
@@ -731,6 +776,15 @@
           const placement = mesh.matrixWorld.clone();
           batch.setMatrixAt(instanceId, placement);
           batch.setColorAt(instanceId, TINT.base);
+          let edges = null;
+          if (record.edges && edgeBudget > 0) {
+            edges = new THREE.LineSegments(record.edges, edgeMaterial);
+            edges.matrix.copy(placement);
+            edges.matrixAutoUpdate = false;
+            edges.frustumCulled = false;
+            building.add(edges);
+            edgeBudget -= 1;
+          }
           const worldBox = record.box.clone().applyMatrix4(placement).applyMatrix4(yUp);
           const item = {
             batch,
@@ -742,6 +796,7 @@
             rank: layerRank(modelId),
             part: partRank(info.storey, info.classLabel || parts[0].replace(/^Ifc/, "")),
             placement,
+            edges,
             worldBox,
             positions: record.positions,
             visible: true,
@@ -1267,6 +1322,10 @@
       fillMeasurePanel();
     });
     document.getElementById("measure-clear").addEventListener("click", clearMeasures);
+    document.getElementById("detail-close").addEventListener("click", () => {
+      clearSelection();
+      applyTint();
+    });
     renderer.domElement.addEventListener("contextmenu", (event) => {
       event.preventDefault();
     });
