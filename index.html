@@ -58,6 +58,10 @@
       background: #9aafc2; top: 3px; left: 3px;
       transition: transform 0.18s ease, background 0.18s ease;
     }
+    button.chip .swatch {
+      width: 12px; height: 12px; border-radius: 3px; flex: none;
+      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.35);
+    }
     button.chip em { margin-left: auto; font-style: normal; color: #6e8498; font-variant-numeric: tabular-nums; }
     button.chip.on { color: #f7fbff; }
     button.chip.on .knob { background: var(--amber); }
@@ -175,7 +179,7 @@
   </aside>
   <aside id="measure" hidden>
     <h2>Đo</h2>
-    <p id="measure-hint" class="hint">Đưa dấu cộng vàng vào góc, bấm để chốt. Chuột phải để xoay.</p>
+    <p id="measure-hint" class="hint">Bấm điểm đầu, điểm cuối, rồi bấm chỗ đặt đường kích thước. Giữ Shift để khóa vuông góc.</p>
     <div id="measure-rows"></div>
     <div class="measure-actions">
       <button id="measure-break" type="button">Ngắt chuỗi</button>
@@ -206,6 +210,30 @@
 
     const STOREY_ORDER = ["ĐÁY ĐÀI", "MẶT ĐÀI", "MDTN", "TẦNG 1", "TẦNG 2", "TẦNG 3", "TẦNG 4", "TẦNG TUM", "TẦNG MÁI"];
     const KIND_ORDER = ["Kết cấu mặt", "Địa hình", "Lan can", "Cột", "Dầm", "Tường", "Đèn", "Thiết bị", "Cấu kiện", "Móng", "Cọc", "Tấm"];
+    const KIND_HEX = {
+      "Kết cấu mặt": "#c4893a",
+      "Địa hình": "#3f7d45",
+      "Lan can": "#2f78b4",
+      "Cột": "#a85b38",
+      "Dầm": "#c47848",
+      "Tường": "#8d6a58",
+      "Đèn": "#e6a322",
+      "Thiết bị": "#e15d2a",
+      "Cấu kiện": "#5d8c9c",
+      "Cây": "#2f9a4c",
+      "Móng": "#6d5b49",
+      "Cọc": "#4e453c",
+      "Tấm": "#6d88aa",
+    };
+    const LAYER_HEX = {
+      Tuyen: "#e2b15a",
+      Cau: "#6aaee0",
+      Cong: "#3ec4b4",
+      ChieuSang: "#f0c14b",
+      ATGT: "#ef7b38",
+      CanhQuan: "#63b85a",
+      HienTrang: "#9a9086",
+    };
     const MODEL_ORDER = ["Tuyen", "Cau", "Cong", "ChieuSang", "ATGT", "CanhQuan", "HienTrang"];
     const MODEL_LABEL = {
       Tuyen: "Tuyến",
@@ -336,6 +364,14 @@
     function layerRank(modelId) {
       const index = MODEL_ORDER.indexOf(modelId);
       return index < 0 ? 0 : index;
+    }
+
+    function colorOf(modelId, kind, storey) {
+      const color = new THREE.Color(KIND_HEX[kind] || "#7d8b98");
+      const layer = new THREE.Color(LAYER_HEX[modelId] || "#ffffff");
+      color.lerp(layer, 0.34);
+      if ((storey || "").startsWith("00-")) color.multiplyScalar(0.62);
+      return color;
     }
 
     function partRank(storey, kind) {
@@ -554,7 +590,7 @@
       return null;
     }
 
-    function chips(parent, names, active, labelOf, keyOf, initiallyOn) {
+    function chips(parent, names, active, labelOf, keyOf, initiallyOn, swatchOf) {
       parent.replaceChildren();
       for (const name of names) {
         const button = document.createElement("button");
@@ -567,7 +603,14 @@
         knob.setAttribute("aria-hidden", "true");
         const label = document.createElement("span");
         label.textContent = labelOf(name);
-        button.append(knob, label);
+        button.append(knob);
+        if (swatchOf) {
+          const swatch = document.createElement("i");
+          swatch.className = "swatch";
+          swatch.style.background = swatchOf(name);
+          button.append(swatch);
+        }
+        button.append(label);
         const count = document.createElement("em");
         const ids = new Set(items.filter((item) => keyOf(item) === name).map((item) => item.key));
         count.textContent = String(ids.size);
@@ -614,9 +657,14 @@
       const groups = new Map();
       for (const mesh of meshes) {
         const source = Array.isArray(mesh.material) ? mesh.material[0] : mesh.material;
-        const color = source.color ? source.color.clone() : new THREE.Color(0.8, 0.8, 0.8);
-        const opacity = source.opacity == null ? 1 : source.opacity;
-        const key = [color.r.toFixed(3), color.g.toFixed(3), color.b.toFixed(3), opacity.toFixed(3)].join("|");
+        const named = mesh.userData.name || mesh.name;
+        const nameParts = named.split(":");
+        const modelId = mesh.userData.modelId;
+        const info = meta[modelId + ":" + (nameParts[1] || "")] || {};
+        const kind = info.classLabel || nameParts[0].replace(/^Ifc/, "");
+        const color = colorOf(modelId, kind, info.storey);
+        const opacity = source && source.opacity != null ? source.opacity : 1;
+        const key = color.getHexString() + "|" + opacity.toFixed(3);
         if (!groups.has(key)) {
           groups.set(key, {
             color,
@@ -641,12 +689,12 @@
       for (const group of groups.values()) {
         const material = new THREE.MeshStandardMaterial({
           color: group.color,
-          roughness: 0.68,
-          metalness: 0.02,
+          roughness: 0.86,
+          metalness: 0,
           opacity: group.opacity,
           transparent: group.opacity < 0.999,
           side: THREE.DoubleSide,
-          envMapIntensity: 0.42,
+          envMapIntensity: 0.18,
         });
         const batch = new THREE.BatchedMesh(group.meshes.length, group.vertices + 8, group.indices + 24, material);
         batch.frustumCulled = true;
@@ -728,6 +776,8 @@
     let measuring = false;
     let breakChain = false;
     let previewSample = null;
+    let dimDraft = null;
+    let placeCursor = null;
     let snapLocked = false;
     let panelKey = "";
     const chain = [];
@@ -876,10 +926,10 @@
       inverseMatrix.copy(fullMatrix).invert();
       snapLocal.copy(hitPoint).applyMatrix4(inverseMatrix);
       const hitDistance = Math.max(camera.position.distanceTo(hitPoint), 0.4);
-      const reach = pixelsAt(hitDistance, 110);
+      const reach = pixelsAt(hitDistance, 170);
       const reachSq = reach * reach;
       let best = null;
-      let bestPixels = 72 * 72;
+      let bestPixels = 110 * 110;
       for (let index = 0; index < positions.length; index += 3) {
         const dx = positions[index] - snapLocal.x;
         const dy = positions[index + 1] - snapLocal.y;
@@ -924,16 +974,57 @@
       return side;
     }
 
-    function layoutAligned(from, to) {
+    function placementOf(from, to, cursor) {
+      const direction = to.clone().sub(from);
+      if (direction.lengthSq() < 1e-6) return null;
+      direction.normalize();
+      const mid = from.clone().lerp(to, 0.5);
+      const side = screenSide(direction, mid, "up");
+      const signed = cursor.clone().sub(mid).dot(side);
+      if (signed < 0) side.negate();
+      const distance = Math.max(camera.position.distanceTo(mid), 0.5);
+      return { side, distance: Math.max(Math.abs(signed), pixelsAt(distance, 18)) };
+    }
+
+    function pointOnViewPlane(event, anchor) {
+      const rect = renderer.domElement.getBoundingClientRect();
+      pointer.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+      pointer.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+      raycaster.setFromCamera(pointer, camera);
+      const normal = camera.getWorldDirection(new THREE.Vector3());
+      const plane = new THREE.Plane().setFromNormalAndCoplanarPoint(normal, anchor);
+      const hit = new THREE.Vector3();
+      return raycaster.ray.intersectPlane(plane, hit) ? hit : anchor.clone();
+    }
+
+    function orthoPoint(origin, point) {
+      const next = point.clone();
+      const dx = Math.abs(point.x - origin.x);
+      const dy = Math.abs(point.y - origin.y);
+      const dz = Math.abs(point.z - origin.z);
+      if (dy >= dx && dy >= dz) {
+        next.x = origin.x;
+        next.z = origin.z;
+      } else if (dx >= dz) {
+        next.y = origin.y;
+        next.z = origin.z;
+      } else {
+        next.x = origin.x;
+        next.y = origin.y;
+      }
+      return next;
+    }
+
+    function layoutAligned(from, to, placed) {
       const direction = to.clone().sub(from);
       const length = direction.length();
       if (length < 0.001) return null;
       direction.multiplyScalar(1 / length);
       const mid = from.clone().lerp(to, 0.5);
       const distance = Math.max(camera.position.distanceTo(mid), 0.5);
-      const side = screenSide(direction, mid, "up");
+      const side = placed ? placed.side.clone() : screenSide(direction, mid, "up");
       const gap = pixelsAt(distance, 8);
-      const offset = pixelsAt(distance, 36);
+      const offset = placed ? placed.distance : pixelsAt(distance, 36);
       const overrun = pixelsAt(distance, 10);
       const tick = pixelsAt(distance, 12);
       const dimFrom = from.clone().addScaledVector(side, offset);
@@ -990,8 +1081,8 @@
       };
     }
 
-    function paintDimension(dim, from, to) {
-      const aligned = layoutAligned(from, to);
+    function paintDimension(dim, from, to, placed) {
+      const aligned = layoutAligned(from, to, placed);
       if (!aligned) {
         hideDimension(dim);
         return;
@@ -1035,10 +1126,10 @@
       if (key === panelKey) return;
       panelKey = key;
       measureRows.replaceChildren();
-      if (!previewSample && !last && !latest) {
-        measureHint.textContent = "Đưa dấu cộng vàng vào góc, rồi bấm để chốt.";
-        return;
-      }
+      if (dimDraft) measureHint.textContent = "Bấm chỗ đặt đường kích thước, ra phía ngoài mô hình.";
+      else if (chain.length === 1) measureHint.textContent = "Bấm điểm cuối. Giữ Shift để khóa ngang, dọc hoặc đứng.";
+      else measureHint.textContent = "Bấm điểm đầu. Dấu cộng vàng là điểm cuối.";
+      if (!previewSample && !last && !latest && !dimDraft) return;
       const shown = previewSample || last;
       if (shown) {
         addMeasureRow("X", formatMeters(shown.survey.x));
@@ -1052,11 +1143,6 @@
         addMeasureRow("ΔY", formatLength(numbers.dy));
         addMeasureRow("Cao", formatLength(numbers.dz));
       }
-      measureHint.textContent = latest
-        ? "Bấm tiếp để nối chuỗi. Esc để ngắt."
-        : last
-          ? "Đưa dấu cộng tới góc kia, rồi bấm."
-          : "Đưa dấu cộng vàng vào góc, rồi bấm để chốt.";
     }
 
     function updateMeasureGraphics() {
@@ -1082,9 +1168,14 @@
       for (const dim of dims) {
         realLocalToWorld(dim.a.local, dim.a.rank, dim.a.part, worldA);
         realLocalToWorld(dim.b.local, dim.b.rank, dim.b.part, worldB);
-        paintDimension(dim.graphic, worldA, worldB);
+        paintDimension(dim.graphic, worldA, worldB, dim.side ? { side: dim.side, distance: dim.distance } : null);
       }
-      if (measuring && previewSample) {
+      if (measuring && dimDraft && placeCursor) {
+        realLocalToWorld(dimDraft.a.local, dimDraft.a.rank, dimDraft.a.part, worldA);
+        realLocalToWorld(dimDraft.b.local, dimDraft.b.rank, dimDraft.b.part, worldB);
+        paintDimension(previewDim, worldA, worldB, placementOf(worldA, worldB, placeCursor));
+        previewMarker.visible = false;
+      } else if (measuring && previewSample) {
         realLocalToWorld(previewSample.local, previewSample.rank, previewSample.part, worldA);
         fitMarker(previewMarker, worldA);
         const anchor = !breakChain && chain.length ? chain[chain.length - 1] : null;
@@ -1114,31 +1205,12 @@
           if (anchor) {
             realLocalToWorld(anchor.local, anchor.rank, anchor.part, worldB);
             const length = worldA.distanceTo(worldB);
-            snapText.textContent = length < 0.002 ? (snapLocked ? "Góc" : "Mặt") : (snapLocked ? "Góc · " : "") + formatMeters(length);
+            snapText.textContent = length < 0.002 ? (snapLocked ? "Điểm cuối" : "Mặt") : (snapLocked ? "Điểm cuối · " : "") + formatMeters(length);
           } else {
-            snapText.textContent = snapLocked ? "Góc" : "Mặt";
+            snapText.textContent = snapLocked ? "Điểm cuối" : "Mặt";
           }
         }
       }
-    }
-
-    function placeMeasure(sample, snapped) {
-      if (breakChain) {
-        chain.length = 0;
-        breakChain = false;
-      }
-      chain.push(sample);
-      spots.push({ sample, marker: makeMarker(snapped), label: makeLabel(), leader: makeBar(1) });
-      if (chain.length >= 2) {
-        dims.push({
-          a: chain[chain.length - 2],
-          b: chain[chain.length - 1],
-          graphic: makeDimension(),
-        });
-      }
-      panelKey = "";
-      updateMeasureGraphics();
-      fillMeasurePanel();
     }
 
     function clearMeasures() {
@@ -1155,6 +1227,8 @@
       spots.length = 0;
       dims.length = 0;
       chain.length = 0;
+      dimDraft = null;
+      placeCursor = null;
       breakChain = false;
       panelKey = "";
       updateMeasureGraphics();
@@ -1166,13 +1240,15 @@
       measureToggle.setAttribute("aria-pressed", measuring ? "true" : "false");
       measurePanel.hidden = !measuring;
       hint.textContent = measuring
-        ? "Đo: dấu cộng vàng là góc. Bấm để chốt. Chuột phải để xoay, cuộn để phóng."
+        ? "Đo: điểm đầu, điểm cuối, rồi chỗ đặt đường kích thước. Shift khóa vuông góc. Chuột phải để xoay."
         : "Kéo để xoay · cuộn để phóng · bấm một cấu kiện";
       renderer.domElement.style.cursor = measuring ? "crosshair" : "";
       controls.mouseButtons.LEFT = measuring ? -1 : THREE.MOUSE.ROTATE;
       controls.mouseButtons.RIGHT = measuring ? THREE.MOUSE.ROTATE : THREE.MOUSE.PAN;
       if (!measuring) {
         previewSample = null;
+        dimDraft = null;
+        placeCursor = null;
         snapLocked = false;
         snapEl.hidden = true;
         hoverGuid = null;
@@ -1182,8 +1258,12 @@
       fillMeasurePanel();
     });
     document.getElementById("measure-break").addEventListener("click", () => {
+      dimDraft = null;
+      placeCursor = null;
+      chain.length = 0;
       breakChain = true;
       panelKey = "";
+      updateMeasureGraphics();
       fillMeasurePanel();
     });
     document.getElementById("measure-clear").addEventListener("click", clearMeasures);
@@ -1203,11 +1283,51 @@
       const moved = Math.hypot(event.clientX - pointerDown.x, event.clientY - pointerDown.y);
       pointerDown = null;
       if (moved > (measuring ? 12 : 5)) return;
+      if (measuring && dimDraft) {
+        const origin = new THREE.Vector3();
+        realLocalToWorld(dimDraft.a.local, dimDraft.a.rank, dimDraft.a.part, origin);
+        const end = new THREE.Vector3();
+        realLocalToWorld(dimDraft.b.local, dimDraft.b.rank, dimDraft.b.part, end);
+        const cursor = pointOnViewPlane(event, origin.clone().lerp(end, 0.5));
+        const placed = placementOf(origin, end, cursor);
+        if (placed) {
+          dims.push({
+            a: dimDraft.a,
+            b: dimDraft.b,
+            side: placed.side,
+            distance: placed.distance,
+            graphic: makeDimension(),
+          });
+        }
+        dimDraft = null;
+        placeCursor = null;
+        chain.length = 0;
+        panelKey = "";
+        updateMeasureGraphics();
+        fillMeasurePanel();
+        return;
+      }
       const hit = raycast(event);
       if (measuring) {
         if (!hit) return;
         const snapped = snapWorldPoint(hit.point, hit.item, event.clientX, event.clientY);
-        placeMeasure(sampleFromWorld(snapped.point, hit.item), snapped.snapped);
+        let point = snapped.point;
+        if (event.shiftKey && chain.length === 1) {
+          const origin = new THREE.Vector3();
+          realLocalToWorld(chain[0].local, chain[0].rank, chain[0].part, origin);
+          point = orthoPoint(origin, point);
+        }
+        const sample = sampleFromWorld(point, hit.item);
+        if (breakChain) {
+          chain.length = 0;
+          breakChain = false;
+        }
+        chain.push(sample);
+        spots.push({ sample, marker: makeMarker(snapped.snapped), label: makeLabel(), leader: makeBar(1) });
+        if (chain.length >= 2) dimDraft = { a: chain[chain.length - 2], b: chain[chain.length - 1] };
+        panelKey = "";
+        updateMeasureGraphics();
+        fillMeasurePanel();
         return;
       }
       if (!hit) {
@@ -1224,23 +1344,40 @@
     let hoverQueued = false;
     renderer.domElement.addEventListener("pointermove", (event) => {
       if (dragging || !items.length) return;
-      hoverEvent = { clientX: event.clientX, clientY: event.clientY };
+      hoverEvent = { clientX: event.clientX, clientY: event.clientY, shiftKey: event.shiftKey };
       if (hoverQueued) return;
       hoverQueued = true;
       requestAnimationFrame(() => {
         hoverQueued = false;
         if (!hoverEvent || dragging) return;
         if (measuring) {
-          const hit = raycast(hoverEvent);
-          previewSample = null;
-          snapLocked = false;
-          if (hit) {
-            const snapped = snapWorldPoint(hit.point, hit.item, hoverEvent.clientX, hoverEvent.clientY);
-            previewSample = sampleFromWorld(snapped.point, hit.item);
-            snapLocked = snapped.snapped;
-            previewMarker.material.color.setHex(snapped.snapped ? 0xffc857 : 0xd7e7f6);
+          if (dimDraft) {
+            const origin = new THREE.Vector3();
+            const end = new THREE.Vector3();
+            realLocalToWorld(dimDraft.a.local, dimDraft.a.rank, dimDraft.a.part, origin);
+            realLocalToWorld(dimDraft.b.local, dimDraft.b.rank, dimDraft.b.part, end);
+            placeCursor = pointOnViewPlane(hoverEvent, origin.clone().lerp(end, 0.5));
+            previewSample = null;
+            snapLocked = false;
+          } else {
+            const hit = raycast(hoverEvent);
+            previewSample = null;
+            snapLocked = false;
+            if (hit) {
+              const snapped = snapWorldPoint(hit.point, hit.item, hoverEvent.clientX, hoverEvent.clientY);
+              let point = snapped.point;
+              if (hoverEvent.shiftKey && chain.length === 1) {
+                const origin = new THREE.Vector3();
+                realLocalToWorld(chain[0].local, chain[0].rank, chain[0].part, origin);
+                point = orthoPoint(origin, point);
+              }
+              previewSample = sampleFromWorld(point, hit.item);
+              snapLocked = snapped.snapped;
+              previewMarker.material.color.setHex(snapped.snapped ? 0xffc857 : 0xd7e7f6);
+            }
           }
           renderer.domElement.style.cursor = "crosshair";
+          updateMeasureGraphics();
           fillMeasurePanel();
           return;
         }
@@ -1291,9 +1428,24 @@
     });
     addEventListener("keydown", (event) => {
       if (event.key === "Escape") {
-        if (measuring && chain.length && !breakChain) {
-          breakChain = true;
+        if (measuring && (dimDraft || chain.length)) {
+          dimDraft = null;
+          placeCursor = null;
+          chain.length = 0;
+          const kept = new Set();
+          for (const dim of dims) {
+            kept.add(dim.a);
+            kept.add(dim.b);
+          }
+          for (let index = spots.length - 1; index >= 0; index -= 1) {
+            if (kept.has(spots[index].sample)) continue;
+            scene.remove(spots[index].marker);
+            scene.remove(spots[index].leader);
+            spots[index].label.remove();
+            spots.splice(index, 1);
+          }
           panelKey = "";
+          updateMeasureGraphics();
           fillMeasurePanel();
           return;
         }
@@ -1338,9 +1490,9 @@
         const present = new Set(items.map((item) => (meta[item.key] || {}).classLabel || item.kind));
         const kinds = KIND_ORDER.filter((name) => present.has(name));
         for (const name of present) if (!kinds.includes(name)) kinds.push(name);
-        chips(document.getElementById("models"), MODEL_ORDER, modelOn, (name) => MODEL_LABEL[name], (item) => item.model, (name) => name !== "HienTrang");
+        chips(document.getElementById("models"), MODEL_ORDER, modelOn, (name) => MODEL_LABEL[name], (item) => item.model, (name) => name !== "HienTrang", (name) => LAYER_HEX[name]);
         chips(document.getElementById("storeys"), storeys, storeyOn, storeyLabel, (item) => (meta[item.key] || {}).storey || "Khác");
-        chips(document.getElementById("kinds"), kinds, kindOn, (name) => name, (item) => (meta[item.key] || {}).classLabel || item.kind);
+        chips(document.getElementById("kinds"), kinds, kindOn, (name) => name, (item) => (meta[item.key] || {}).classLabel || item.kind, null, (name) => KIND_HEX[name] || "#7d8b98");
         applyVisibility();
         home = visibleBox(0);
         const center = home.getCenter(new THREE.Vector3());
