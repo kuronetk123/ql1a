@@ -106,6 +106,23 @@
       box-shadow: 0 16px 40px rgba(0, 0, 0, 0.38);
     }
     #measure[hidden] { display: none; }
+    #map-card {
+      right: 16px; bottom: 96px; width: 380px; z-index: 3;
+      border: 1px solid var(--line); border-radius: 4px; overflow: hidden;
+      background: rgba(8, 22, 36, 0.95); backdrop-filter: blur(8px);
+      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.38);
+    }
+    #map-card[hidden] { display: none; }
+    #map-card h2 { margin: 0; font-size: 14px; font-weight: 650; color: var(--cyan); letter-spacing: 0.04em; }
+    #map-frame { display: block; width: 100%; height: 230px; object-fit: cover; border: 0; background: #102033; }
+    a.map-shot { display: block; }
+    #map-link {
+      display: flex; align-items: center; justify-content: space-between; gap: 8px;
+      margin: 0; padding: 8px 12px; color: var(--amber); text-decoration: none;
+      letter-spacing: 0.06em; text-transform: uppercase; font-size: 12px;
+    }
+    #map-link:hover { background: rgba(224, 177, 90, 0.16); }
+    #map-place { margin: 0; padding: 0 12px 10px; color: var(--muted); font-size: 12px; }
     #measure h2 { margin: 0 0 4px; font-size: 14px; font-weight: 650; color: var(--cyan); letter-spacing: 0.04em; }
     #measure .hint { margin: 0 0 8px; color: var(--muted); font-size: 12px; }
     .measure-actions { display: flex; gap: 8px; margin-top: 8px; }
@@ -169,7 +186,9 @@
       button.nav, button.tool { width: auto; padding: 6px 8px; }
       #filters { top: auto; bottom: 148px; max-height: 34vh; width: min(280px, calc(100vw - 16px)); }
       footer { width: calc(100vw - 24px); }
-      #detail, #measure { left: 12px; right: 12px; top: auto; width: auto; }
+      #detail, #measure, #map-card { left: 12px; right: 12px; top: auto; width: auto; }
+      #map-card { bottom: 148px; }
+      #map-frame { height: 160px; }
       #detail { bottom: 210px; }
       #measure { bottom: 210px; max-height: 32vh; overflow: auto; }
     }
@@ -191,6 +210,7 @@
     <button class="tool" id="layers-toggle" type="button" aria-pressed="true">Lớp</button>
     <button class="tool" id="explode-toggle" type="button" aria-pressed="false" title="Nhấc móng, mặt cầu, cột, lan can và từng hồ sơ">Tách lớp</button>
     <button class="tool" id="measure-toggle" type="button" aria-pressed="false">Đo</button>
+    <button class="tool" id="map-toggle" type="button" aria-pressed="true" aria-expanded="true">Bản đồ</button>
   </nav>
   <aside id="filters">
     <p class="hint">Gạt để hiện hoặc ẩn</p>
@@ -217,6 +237,17 @@
       <button id="measure-break" type="button">Ngắt chuỗi</button>
       <button id="measure-clear" type="button">Xóa kích thước</button>
     </div>
+  </aside>
+  <aside id="map-card">
+    <div class="detail-head">
+      <h2>Vị trí hiện trường</h2>
+      <button id="map-close" type="button" aria-label="Đóng bản đồ">×</button>
+    </div>
+    <a class="map-shot" href="https://www.google.com/maps/@18.8160298,105.6511584,707m/data=!3m1!1e3" target="_blank" rel="noopener">
+      <img id="map-frame" alt="Ảnh vệ tinh QL1A giao Vĩnh Long B" src="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/export?bbox=105.6448,18.8118,105.6575,18.8203&amp;bboxSR=4326&amp;size=760,460&amp;format=jpg&amp;f=image">
+    </a>
+    <a id="map-link" href="https://www.google.com/maps/@18.8160298,105.6511584,707m/data=!3m1!1e3" target="_blank" rel="noopener">Mở Google Maps</a>
+    <p id="map-place">QL1A giao Vĩnh Long B · 18,816030°N, 105,651158°E · Ảnh Esri</p>
   </aside>
   <div id="dim-layer"></div>
   <div id="snap" hidden><b id="snap-text"></b></div>
@@ -1516,6 +1547,16 @@
       const hidden = filters.classList.toggle("hidden");
       layersToggle.setAttribute("aria-pressed", hidden ? "false" : "true");
     });
+    const mapCard = document.getElementById("map-card");
+    const mapToggle = document.getElementById("map-toggle");
+    function setMap(open) {
+      mapCard.hidden = !open;
+      mapToggle.setAttribute("aria-pressed", open ? "true" : "false");
+      mapToggle.setAttribute("aria-expanded", open ? "true" : "false");
+    }
+    mapToggle.addEventListener("click", () => setMap(mapCard.hidden));
+    document.getElementById("map-close").addEventListener("click", () => setMap(false));
+    setMap(true);
     function frameLayers() {
       const box = visibleBox(Number(explode.value));
       if (box) flyToBox(box);
